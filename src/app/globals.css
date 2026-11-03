@@ -1,0 +1,177 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #000000;
+  --color-panel: #0a0908;
+  --color-panel2: #12100c;
+  --color-line: #1c1915;
+  --color-line2: #2b251d;
+  --color-bone: #f2ece1;
+  --color-dim: #a69b89;
+  --color-dim2: #8b806e;
+  --color-amber: #ffb35c;
+  --color-amberdim: #8a5c2b;
+
+  --font-display: var(--font-display), "Times New Roman", serif;
+  --font-sans: var(--font-sans), "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-mono), "SF Mono", monospace;
+}
+
+html {
+  background: #000;
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: #000;
+  color: var(--color-bone);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: rgba(255, 179, 92, 0.14);
+}
+
+button,
+label,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+button {
+  transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, transform 0.12s ease;
+}
+button:active {
+  transform: scale(0.985);
+}
+
+::selection {
+  background: var(--color-amber);
+  color: #000;
+}
+
+/* --- Panel yüzeyi: kazınmış alüminyum doku --- */
+.tex {
+  background-image: url("/images/panel-texture.jpg");
+  background-size: cover;
+  background-position: center;
+  opacity: 0.1;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* --- Panel etiketi: kazınmış versal --- */
+.label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--color-dim);
+}
+
+.label-sm {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--color-dim2);
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.hair {
+  border-color: var(--color-line);
+}
+
+/* --- Tek tuş: nefes alan başlatma --- */
+@keyframes breath {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 179, 92, 0.16); }
+  50% { box-shadow: 0 0 44px 6px rgba(255, 179, 92, 0.1); }
+}
+.breath { animation: breath 6s ease-in-out infinite; }
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rise { animation: riseIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes pulseAmber {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+.pulse-amber { animation: pulseAmber 2.4s ease-in-out infinite; }
+
+/* --- Kaydırıcılar --- */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--color-line2);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -5px;
+  background: var(--color-amber);
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 179, 92, 0.5);
+}
+input[type="range"]::-moz-range-track {
+  height: 2px;
+  background: var(--color-line2);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  background: var(--color-amber);
+  border-radius: 50%;
+}
+
+/* --- Yoğun veri tablosu --- */
+.row:hover { background: #0f0d0a; }
+.row:hover .rowmark { background: var(--color-amber); }
+
+.scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: #241f19; }
+.scroll-thin::-webkit-scrollbar-track { background: transparent; }
+
+/* Bu kurallar temel bileşenlerden sonra gelmeli; mobil tutamaklar gerçekten büyüsün. */
+@media (max-width: 767px) {
+  .label { font-size: 11px; letter-spacing: 0.12em; }
+  .label-sm { font-size: 10.5px; letter-spacing: 0.08em; }
+  input[type="range"] { height: 44px; }
+  input[type="range"]::-webkit-slider-thumb { width: 20px; height: 20px; margin-top: -9px; }
+  input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; }
+  /* iOS, 16px altındaki alanlara odaklanınca sayfayı büyütür. */
+  input:not([type="range"]):not([type="checkbox"]), select, textarea { font-size: 16px !important; }
+}
+
+:focus-visible { outline: 2px solid #ffb35c; outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .breath, .rise, .pulse-amber { animation: none !important; }
+}

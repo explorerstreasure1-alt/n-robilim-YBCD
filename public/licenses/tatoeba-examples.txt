@@ -1,0 +1,8 @@
+NOCTA cümle örnekleri
+
+Örnekler Tatoeba topluluğunun cümlelerinden ve ManyThings.org'un iki dilli derlemelerinden derlenmiştir.
+Kaynak: https://www.manythings.org/anki/ ve https://tatoeba.org/
+Lisans: Creative Commons Attribution 2.0 France (CC BY 2.0 FR).
+https://creativecommons.org/licenses/by/2.0/fr/
+
+Her örneğin özgün cümle numarası ve katkıda bulunan kullanıcı adları uygulamanın kaynak ayrıntılarında saklanır ve gösterilir. Türkçe karşılıklar doğrudan veya ortak İngilizce cümle üzerinden eşleştirilebilir; bazıları otomatik çeviridir ve böyle belirtilir. Bağlam farklılıkları veya hatalar bulunabilir.
