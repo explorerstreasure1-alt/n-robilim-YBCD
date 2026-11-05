@@ -14,45 +14,48 @@ import type { LangCode } from "./languages";
 import { flushPendingNotes } from "./offline-notes";
 
 export interface Settings {
-  reverb: number;
   volume: number;
-  /** Uykuya geçiş fazı (dk): bu süre boyunca yalnız yoğun frekans, seslendirme yok */
+  /** Uykuya geçiş fazı (dk): bu süre boyunca yalnız arka plan sesi, konuşma yok */
   prepMinutes: number;
-  /** Gece: hazırlık -> tekrar. Yoğun tekrar: anında alfa + tekrar. Sabah: alfa ile bilinç yükselişi. Akşam: bedeni uyutan, bilinci açık bırakan theta sınırı. Derin: delta ile derin uyku. Güçlü kısa uyku: 20 dk'lık delta pulsu. */
-  sessionMode: "sleep" | "focus" | "morning" | "evening" | "deep" | "nap";
-  timerMinutes: number;
+  /** Gece: önce dinlenme, sonra dil tekrarı. Sabah: alfa ile bilinç yükselişi, sonra okuma. */
+  sessionMode: "sleep" | "morning";
   fadeMinutes: number;
   output: "auto" | "binaural" | "speaker";
-  /** Hoparlörde daha belirgin nabız veya yumuşak modülasyon. */
-  speakerStyle: "isochronic" | "monaural";
   sleepDetect: boolean;
-  batterySaver: boolean;
   speak: boolean;
   /** cloud: sunucuda üretilen ses (yankı zincirinden geçer) · device: tarayıcı sesi */
   voiceSource: "cloud" | "device";
   voiceRate: number;
   voiceLevel: number;
+  /** Hoparlörde daha belirgin nabız veya yumuşak modülasyon. */
+  speakerStyle: "isochronic" | "monaural";
+  /** Yumuşak arka plan sesi seviyesi (reverb). */
+  reverb: number;
   /** HRTF uzamsal ses derinliği (0–0.8). */
   spatialDepth: number;
+  /** Pil iyileştirme modu. */
+  batterySaver: boolean;
+  /** Seans bitiş zamanlayıcı (dk). 0 = sabaha kadar. */
+  timerMinutes: number;
   reminderAt: string;
 }
 
 const DEFAULTS: Settings = {
-  reverb: 0.24,
   volume: 0.55,
   prepMinutes: 40,
   sessionMode: "sleep",
-  timerMinutes: 0,
   fadeMinutes: 2,
   output: "auto",
-  speakerStyle: "monaural",
   sleepDetect: false,
-  batterySaver: true,
   speak: true,
   voiceSource: "cloud",
   voiceRate: 1,
   voiceLevel: 0.8,
+  speakerStyle: "monaural",
+  reverb: 0.24,
   spatialDepth: 0.5,
+  batterySaver: true,
+  timerMinutes: 0,
   reminderAt: "23:15",
 };
 

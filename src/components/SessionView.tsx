@@ -10,10 +10,10 @@ import { LANGUAGES, LANG_BY_CODE, type LangCode } from "@/lib/languages";
 import { engine, detectOutput, stopSpeech, type OutputMode } from "@/lib/audio";
 import { loadLine, playLine, prefetch, stopLine, type VoiceResult } from "@/lib/voice";
 import { useMicrophone } from "@/lib/microphone";
-import { DESCENT, PROTOCOL_NOTES, SO_HZ, buildSchedule, protocolSleep, protocolMorning, protocolEvening, protocolDeepSleep, protocolFocus, protocolPowerNap, slotAt } from "@/lib/protocol";
+import { DESCENT, PROTOCOL_NOTES, SO_HZ, buildSchedule, protocolSleep, protocolMorning, slotAt } from "@/lib/protocol";
 import Scope from "./Scope";
 import MicrophoneControl from "./MicrophoneControl";
-import QuickAudioLab from "./QuickAudioLab";
+
 
 const BLOCK_SEC = 35 * 60;
 const TOTAL_BLOCKS = 858;
@@ -74,7 +74,6 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
   const [testing, setTesting] = useState(false);
   const [level, setLevel] = useState(0);
   const [silent, setSilent] = useState(false);
-  const [advanced, setAdvanced] = useState(false);
   const [why, setWhy] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState<VoiceResult | "loading" | null>(null);
   const [audioError, setAudioError] = useState("");
@@ -93,25 +92,19 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
     ? elapsedRef.current
     : Math.max(0, (Date.now() - startedAtRef.current) / 1000);
 
-  const prepSec = settings.sessionMode === "focus" ? 0 : settings.prepMinutes * 60;
+  const prepSec = settings.prepMinutes * 60;
   const baseBlock = sessionBase ?? progress[lang]?.blockIndex ?? 0;
   const [blockOffset, setBlockOffset] = useState(0);
   const currentBlock = (baseBlock + blockOffset) % Math.max(1, totalBlocks);
   const subElapsed = Math.max(0, elapsed - prepSec);
   const inBlock = subElapsed % BLOCK_SEC;
-  const phase: "prep" | "sub" = settings.sessionMode === "focus" ? "sub" : elapsed >= prepSec ? "sub" : "prep";
+  const phase: "prep" | "sub" = elapsed >= prepSec ? "sub" : "prep";
   const protocol = useMemo(() => {
-    if (settings.sessionMode === "focus") return protocolFocus(elapsed, prepSec);
     if (settings.sessionMode === "morning") return protocolMorning(elapsed, prepSec);
-    if (settings.sessionMode === "evening") return protocolEvening(elapsed, prepSec);
-    if (settings.sessionMode === "deep") return protocolDeepSleep(elapsed, prepSec);
-    if (settings.sessionMode === "nap") return protocolPowerNap(elapsed, prepSec);
     return protocolSleep(elapsed, prepSec);
   }, [elapsed, prepSec, settings.sessionMode]);
   const schedule = useMemo(
-    () => settings.sessionMode === "focus"
-      ? buildSchedule(7, BLOCK_SEC / 2).map((item) => ({ ...item, t: item.t * 0.58 }))
-      : buildSchedule(7, BLOCK_SEC),
+    () => buildSchedule(7, BLOCK_SEC),
     [settings.sessionMode],
   );
   const slotIndex = phase === "sub" ? slotAt(schedule, inBlock) : -1;
@@ -238,12 +231,9 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
     return () => cancelAnimationFrame(raf);
   }, [visible]);
 
-  useEffect(() => engine.setReverb(settings.reverb), [settings.reverb]);
-  useEffect(() => engine.setSpatialDepth(settings.spatialDepth), [settings.spatialDepth]);
-  useEffect(() => engine.setSpeakerStyle(settings.speakerStyle), [settings.speakerStyle]);
   useEffect(() => {
-    engine.setVolume(settings.volume * (settings.sleepDetect && sleeping && phase === "sub" ? 0.55 : 1));
-  }, [settings.volume, settings.sleepDetect, sleeping, phase]);
+    engine.setVolume(settings.volume);
+  }, [settings.volume]);
 
   useEffect(() => {
     if (settings.output !== "auto") return;
@@ -278,7 +268,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
   useEffect(() => {
     if (!running || phase !== "prep") return;
     engine.schedulePhaseTransition(Math.max(0, prepSec - currentElapsed()));
-  }, [running, phase, prepSec, outputMode, microphone.status, settings.speakerStyle, meta.carrier, scheduleRevision]);
+  }, [running, phase, prepSec, outputMode, microphone.status, meta.carrier, scheduleRevision]);
 
   useEffect(() => {
     if (!running || !settings.speak || !pool.length) return;
@@ -383,9 +373,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
     try {
       await engine.start({ carrier: meta.carrier, beat: protocol.hz, mode: outputMode });
       if (engine.contextState !== "running") throw new Error("audio-not-running");
-      engine.setReverb(settings.reverb);
-      engine.setSpeakerStyle(settings.speakerStyle);
-      engine.setVolume(settings.volume * (settings.sleepDetect && sleeping && phase === "sub" ? 0.55 : 1));
+      engine.setVolume(settings.volume);
     } catch {
       engine.stop(0.2);
       setAudioError("Ses başlatılamadı. Cihazın sesini açıp tekrar başlatmayı dene.");
@@ -521,24 +509,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
     };
   }, []);
 
-  useEffect(() => {
-    if (!running || fading || settings.timerMinutes <= 0) return;
-    const limit = settings.timerMinutes * 60;
-    const fadeStart = Math.max(0, limit - settings.fadeMinutes * 60);
-    const timer = window.setInterval(() => {
-      const seconds = startedAtRef.current === null
-        ? elapsedRef.current : Math.max(0, (Date.now() - startedAtRef.current) / 1000);
-      if (seconds < fadeStart) return;
-      window.clearInterval(timer);
-      setFading(true);
-      const fadeSeconds = Math.max(0.5, limit - seconds);
-      void engine.fadeOut(fadeSeconds);
-      const minutes = Math.round(seconds / 60);
-      const blocks = Math.floor(Math.max(0, seconds - prepSec) / BLOCK_SEC) + 1;
-      fadeTimerRef.current = window.setTimeout(() => void finishRef.current(minutes, blocks), fadeSeconds * 1000 + 600);
-    }, 500);
-    return () => window.clearInterval(timer);
-  }, [running, fading, settings.timerMinutes, settings.fadeMinutes, prepSec]);
+  // Timer removed - session runs until user stops it
 
   const mmss = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
@@ -558,13 +529,13 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
       <section className="relative h-[34svh] min-h-[220px] max-h-[300px] w-full shrink-0 overflow-hidden border-b border-line md:h-auto md:min-h-0 md:max-h-none md:flex-1 md:border-b-0 md:border-r">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0908] via-black to-black opacity-80" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/75 to-black/40" />
-        <Scope phase={phase} reverb={settings.reverb} running={running} sleeping={settings.sleepDetect && sleeping} lowPower={settings.batterySaver} visible={visible && !screenDark} />
+        <Scope phase={phase} reverb={0} running={running} sleeping={false} lowPower={false} visible={visible && !screenDark} />
         <div className="relative flex h-full flex-col justify-between p-4 md:p-8">
           <div className="flex flex-wrap items-center gap-1.5">
             <Chip accent>
               <span className="num text-[12px]">{protocol.hz.toFixed(1)}</span> Hz · {protocol.band}
             </Chip>
-            <Chip>{settings.sessionMode === "focus" ? "ALFA · YOĞUN TEKRAR" : phase === "prep" ? "1 · DİNLENME" : "2 · DİL TEKRARI"}</Chip>
+            <Chip>{phase === "prep" ? "1 · DİNLENME" : "2 · DİL TEKRARI"}</Chip>
             <span className="hidden md:contents"><Chip>BLOK {currentBlock + 1}/{totalBlocks}</Chip></span>
             {microphone.status === "on" ? (
               <Chip accent>EŞİT SES</Chip>
@@ -586,9 +557,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
                 <p className="mt-2 max-w-lg text-[13px] leading-relaxed text-dim">
                   {elapsed > 0
                     ? "Ses duraklatıldı. Hazır olduğunda kaldığın yerden devam edebilirsin."
-                    : settings.sessionMode === "focus"
-                      ? "Alfa eşliğinde yoğun tekrar. Konuşmalar anında başlar."
-                      : `${settings.prepMinutes} dakika konuşmasız dinlenme, ardından net ve hafif yankılı dil tekrarları.`}
+                    : `${settings.prepMinutes} dakika konuşmasız dinlenme, ardından net ve hafif yankılı dil tekrarları.`}
                 </p>
               </>
             ) : phase === "prep" ? (
@@ -623,11 +592,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
             <div>
               <div className="num text-[2rem] leading-none text-bone md:text-5xl">{mmss(elapsed)}</div>
               <div className="label mt-1.5">
-                {settings.timerMinutes > 0
-                  ? `${Math.max(0, Math.round(settings.timerMinutes - elapsed / 60))} DK KALDI`
-                  : "SABAHA KADAR"}
-                {settings.sleepDetect && sleeping && " · HAREKETSİZLİK"}
-                {fading && " · KISILIYOR"}
+                "DINLEME DEVAM EDIYOR"
               </div>
             </div>
             <Meter value={level} active={running} />
@@ -702,39 +667,33 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
               <span className="num text-[11px] text-amber">01</span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="label text-bone">{settings.sessionMode === "focus" ? "ALFA YOĞUN TEKRAR" : settings.sessionMode === "morning" ? "SABAH · ALFA" : settings.sessionMode === "evening" ? "AKŞAM · TETA" : settings.sessionMode === "deep" ? "DERİN UYKU" : settings.sessionMode === "nap" ? "GÜÇLÜ KISA UYKU" : "UYKUYA GEÇİŞ"}</span>
-                  <span className="label-sm text-amber">{settings.sessionMode === "focus" ? "ANINDA BAŞLAR" : settings.sessionMode === "morning" ? "ALFA YÜKSELİŞİ" : settings.sessionMode === "evening" ? "BİLİNÇ AÇIK" : settings.sessionMode === "deep" ? "DELTA YOĞUN" : settings.sessionMode === "nap" ? "KÜSAK UYKU" : "KONUŞMA YOK"}</span>
+                  <span className="label text-bone">{settings.sessionMode === "morning" ? "SABAH · ALFA" : "GECE · DINLENME"}</span>
+                  <span className="label-sm text-amber">{settings.sessionMode === "morning" ? "ALFA YÜKSELİŞİ" : "ÖNCE DINLENME, SONRA DİL"}</span>
                 </div>
                  <p className="mt-1 text-[12px] leading-relaxed text-dim">
-                   {settings.sessionMode === "focus" ? "Alfa eşliğinde anında tekrar ve daha sık döngü." : settings.sessionMode === "morning" ? "Delta'dan alfa'ya bilinç yükselişi." : settings.sessionMode === "evening" ? "Alfa'dan teta'ya, bilinci açık bırakan huzur." : settings.sessionMode === "deep" ? "Delta bantında derin uyku pulsu." : settings.sessionMode === "nap" ? "20 dakikalık güçlü kısa uyku." : "Yumuşak frekans ve sakin ortam sesi."}
+                   {settings.sessionMode === "morning" ? "İlk 15 dk alfa dalgası, ardından okumalar başlar." : `\${settings.prepMinutes} dakika konuşmasız dinlenme, ardından hafif yankılı dil tekrarları.`}
                  </p>
                  <div className="mt-3 grid grid-cols-2 gap-1" aria-label="Oturum modu">
-                   {([
-                     { id: "sleep", label: "GECE", hint: "alfa -> delta" },
-                     { id: "focus", label: "YOĞUN TEKRAR", hint: "sabit alfa" },
-                     { id: "morning", label: "SABAH", hint: "delta -> alfa" },
-                     { id: "evening", label: "AKŞAM", hint: "bilinci açık" },
-                     { id: "deep", label: "DERİN UYKU", hint: "delta yoğun" },
-                     { id: "nap", label: "GÜÇLÜ KISA UYKU", hint: "20 dk pulsu" },
-                   ] as const).map((mode) => (
-                     <button key={mode.id} type="button" onClick={() => patch({ sessionMode: mode.id })}
+                   {[
+                     { id: "sleep", label: "GECE", hint: "önce dinlen, sonra dil" },
+                     { id: "morning", label: "SABAH", hint: "alfa ile bilinç, sonra okuma" },
+                   ].map((mode) => (
+                     <button key={mode.id} type="button" onClick={() => patch({ sessionMode: mode.id as "sleep" | "morning" })}
                        disabled={running || elapsed > 0} aria-pressed={settings.sessionMode === mode.id}
                        className={`flex min-h-[52px] flex-col items-center justify-center border px-2 transition-colors disabled:cursor-not-allowed ${settings.sessionMode === mode.id ? "border-amber text-amber" : "border-line text-dim hover:text-bone disabled:opacity-50"}`}>
                        <span className="label" style={{ color: "inherit" }}>{mode.label}</span>
                        <span className="label-sm mt-1">{mode.hint}</span>
                      </button>
                    ))}
-                   {settings.sessionMode === "sleep" && (
-                     <div className="mt-3 grid grid-cols-3 gap-1" aria-label="Uykuya geçiş süresi">
-                       {[35, 40, 45].map((minutes) => (
-                         <button key={minutes} onClick={() => patch({ prepMinutes: minutes })}
-                           disabled={running || elapsed > 0} aria-pressed={settings.prepMinutes === minutes}
-                           className={`label min-h-[42px] border transition-colors disabled:cursor-not-allowed ${settings.prepMinutes === minutes ? "border-amber text-amber" : "border-line text-dim hover:text-bone disabled:opacity-50"}`}>
-                           {minutes} DK
-                         </button>
-                       ))}
-                     </div>
-                   )}
+                 </div>
+                 <div className="mt-3 grid grid-cols-3 gap-1" aria-label="Dinlenme süresi">
+                   {[35, 40, 45].map((minutes) => (
+                     <button key={minutes} onClick={() => patch({ prepMinutes: minutes })}
+                       disabled={running || elapsed > 0} aria-pressed={settings.prepMinutes === minutes}
+                       className={`label min-h-[42px] border transition-colors disabled:cursor-not-allowed ${settings.prepMinutes === minutes ? "border-amber text-amber" : "border-line text-dim hover:text-bone disabled:opacity-50"}`}>
+                       {minutes} DK
+                     </button>
+                   ))}
                  </div>
               </div>
             </div>
@@ -744,165 +703,26 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
               <div>
                 <span className="label text-bone">DİL SESLERİ</span>
                  <p className="mt-1 text-[12px] leading-relaxed text-dim">
-                   {settings.sessionMode === "focus"
-                     ? "Yabancı dil anında başlar; Türkçe anlam daha kısık ve hemen ardından gelir."
-                     : `${settings.prepMinutes}. dakikadan sonra net, hafif yankılı ve aralıklı okunuşlar başlar.`}
+                   ${settings.prepMinutes}. dakikadan sonra net, hafif yankılı ve aralıklı okunuşlar başlar.
                  </p>
               </div>
             </div>
+            {audioError && <p role="alert" className="mt-3 border-l-2 border-amber pl-2 text-[12px] text-amber">{audioError}</p>}
           </div>
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <label htmlFor="session-timer" className="label text-dim">SEANS BİTİŞİ</label>
-            <select id="session-timer" value={settings.timerMinutes}
-              onChange={(event) => patch({ timerMinutes: Number(event.target.value) })}
-               className="num min-h-[44px] rounded-md border border-line bg-black px-3 text-[12px] text-bone focus:border-amber focus:outline-none md:rounded-none">
-              <option value={0}>Sabaha kadar</option>
-              <option value={30}>30 dakika</option>
-              <option value={90}>90 dakika</option>
-              <option value={120}>2 saat</option>
-              <option value={240}>4 saat</option>
-            </select>
-          </div>
-          {settings.timerMinutes > 0 && settings.timerMinutes <= settings.prepMinutes && (
-            <p className="mt-2 border-l-2 border-amber/60 pl-2 text-[11px] leading-relaxed text-amber/80">
-              Seans, dil sesleri başlamadan biter. Konuşmaları duymak için daha uzun süre seç.
-            </p>
-          )}
-          {audioError && <p role="alert" className="mt-3 border-l-2 border-amber pl-2 text-[12px] text-amber">{audioError}</p>}
+
+
         </div>
-
-        <Disclosure title="FREKANS NASIL ÇALIŞIR?" icon={<Waves className="h-4 w-4" strokeWidth={1.5} />}>
-          <ol className="space-y-px">
-            {DESCENT.slice(0, 5).map((a, i) => {
-              const active = phase === "prep" && protocol.stageIndex === i;
-              const done = phase === "sub" || protocol.progress > (DESCENT[i + 1]?.at ?? 1);
-              return (
-                <li key={a.at} className={`flex items-center gap-3 border-l-2 px-3 py-2 ${active ? "border-amber bg-[#120f0a]" : "border-transparent"}`}>
-                  <span className={`num w-12 shrink-0 text-[12px] ${active ? "text-amber" : done ? "text-dim" : "text-dim2"}`}>
-                    {a.hz} Hz
-                  </span>
-                  <span className={`label w-14 shrink-0 ${active ? "text-amber" : ""}`}>{a.band}</span>
-                  <span className={`min-w-0 flex-1 truncate text-[12px] ${active ? "text-bone" : "text-dim2"}`}>{a.label}</span>
-                  <span className="label-sm shrink-0">{Math.round(a.at * settings.prepMinutes)}′</span>
-                </li>
-              );
-            })}
-            <li className={`flex items-center gap-3 border-l-2 px-3 py-2 ${phase === "sub" ? "border-amber bg-[#120f0a]" : "border-transparent"}`}>
-              <span className={`num w-12 shrink-0 text-[12px] ${phase === "sub" ? "text-amber" : "text-dim2"}`}>{SO_HZ} Hz</span>
-              <span className={`label w-14 shrink-0 ${phase === "sub" ? "text-amber" : ""}`}>SALINIM</span>
-              <span className={`min-w-0 flex-1 truncate text-[12px] ${phase === "sub" ? "text-bone" : "text-dim2"}`}>Pekiştirme + okunuş</span>
-              <span className="label-sm shrink-0">{settings.prepMinutes}′+</span>
-            </li>
-          </ol>
-          <p className="mt-3 text-[11px] leading-relaxed text-dim2">
-            Hz değeri sesin vuru hızıdır; uygulama beyin dalgası veya uyku evresi ölçmez.
-          </p>
-          <button onClick={() => setWhy((v) => !v)} className="label mt-3 flex min-h-[36px] w-full items-center justify-between border border-line px-3 text-dim hover:border-amber hover:text-amber">
-            NEDEN BÖYLE ÇALIŞIYOR?
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${why ? "rotate-180" : ""}`} strokeWidth={1.6} />
-          </button>
-          {why && (
-            <div className="mt-2 space-y-3 border-l border-line pl-3">
-              {PROTOCOL_NOTES.map((n) => (
-                <div key={n.title}>
-                  <p className="label text-amber/90">{n.title}</p>
-                  <p className="mt-1 text-[11.5px] leading-relaxed text-dim">{n.body}</p>
-                </div>
-              ))}
-            </div>
-          )}
-          <a href="https://doi.org/10.1371/journal.pone.0286023" target="_blank" rel="noreferrer"
-            className="mt-3 inline-block text-[11px] text-amber/85 underline underline-offset-4">
-            Bilimsel inceleme · PLOS ONE, 2023 ↗
-          </a>
-        </Disclosure>
-
         <div className="border-b border-line px-4 py-4 md:px-5">
-          <QuickAudioLab sourceText={pool[0]?.text ?? lines[0]?.text} translationText={pool[0]?.translation ?? lines[0]?.translation} />
-        </div>
-
-        <Section title="SES" icon={<Volume2 className="h-3.5 w-3.5" strokeWidth={1.5} />}>
-          <div className="grid grid-cols-3 gap-px">
-            {([
-              { id: "auto", label: "OTO", icon: Radio },
-              { id: "binaural", label: "3D KULAKLIK", icon: Headphones },
-              { id: "speaker", label: "HOPARLÖR", icon: Speaker },
-            ] as const).map((m) => {
-              const Icon = m.icon;
-              const on = settings.output === m.id;
-              return (
-                <button key={m.id} onClick={() => patch({ output: m.id })}
-                  className={`flex min-h-[56px] flex-col items-center justify-center gap-1.5 border transition-colors ${on ? "border-amber bg-[#140f08] text-amber" : "border-line text-dim hover:text-bone"}`}>
-                  <Icon className="h-4 w-4" strokeWidth={1.5} />
-                  <span className="label" style={{ color: "inherit" }}>{m.label}</span>
-                </button>
-              );
-            })}
+          <div className="mb-3 flex items-center gap-2 text-amber/80">
+            <Volume2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+            <h3 className="label text-bone">SES</h3>
           </div>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <p className="label-sm truncate">{outputLabel}</p>
-            <p className="label-sm shrink-0 text-amber/80">
-              {microphone.status === "on" ? "EŞİT KANAL" : outputMode === "binaural" ? "HRTF 3D" : "STEREO"}
-            </p>
-          </div>
-          {settings.output === "auto" && (
-            <p className="mt-1 text-[10.5px] leading-relaxed text-dim2">
-              Otomatik algılama tarayıcıya bağlıdır. Algılanmazsa 3D KULAKLIK’ı seç.
-            </p>
-          )}
-
-          <div className="mt-4 space-y-4">
-            <Slider label="SES SEVİYESİ" value={settings.volume} min={0.05} max={1} step={0.01}
-              display={`${Math.round(settings.volume * 100)}%`} onChange={(v) => patch({ volume: v })} />
-            <Slider label="YUMUŞAK YANKI" value={settings.reverb} min={0} max={0.9} step={0.01}
-              display={`${Math.round(settings.reverb * 100)}%`} onChange={(v) => patch({ reverb: v })} />
-            {outputMode === "binaural" && microphone.status !== "on" && (
-              <Slider label="3D DERİNLİK" value={settings.spatialDepth} min={0} max={0.8} step={0.01}
-                display={`${Math.round(settings.spatialDepth * 100)}%`} onChange={(v) => patch({ spatialDepth: v })} />
-            )}
-          </div>
-
-          <details className="group mt-4 border border-line">
-            <summary className="flex min-h-[48px] cursor-pointer list-none items-center justify-between gap-2 px-3">
-              <span className="label">MİKROFON VE DENGELİ SES</span>
-              <span className="flex items-center gap-2">
-                <span className={`label-sm ${microphone.status === "on" ? "text-amber" : ""}`}>{microphone.status === "on" ? "AÇIK" : "KAPALI"}</span>
-                <ChevronDown className="h-4 w-4 text-dim transition-transform group-open:rotate-180" strokeWidth={1.5} />
-              </span>
-            </summary>
-            <div className="p-2 pt-0"><MicrophoneControl /></div>
-          </details>
-          <button
-            type="button"
-            onClick={() => void previewVoice()}
-            disabled={voiceStatus === "loading" || !pool.length || (running && phase === "prep")}
-            className="label mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 border border-amber/70 text-amber transition-colors hover:bg-amber hover:text-black disabled:opacity-35"
-          >
-            <Play className="h-3.5 w-3.5" strokeWidth={1.6} />
-            {voiceStatus === "loading" ? "SES HAZIRLANIYOR…" : "DİL SESİNİ ÖNİZLE"}
-          </button>
-          <p aria-live="polite" className="mt-2 text-[11px] leading-relaxed text-dim2">
-            {running && phase === "prep"
-              ? "Hazırlık süresince dil seslendirmesi kapalıdır."
-              : voiceStatus === "unavailable"
-                ? "İşlenmiş ses alınamadı. İnternet bağlantını kontrol edip tekrar dene."
-                : voiceStatus === "device"
-                  ? "Cihaz sesi çalıyor; cihaz sesi yankı ve 3D efektinden geçmez."
-                  : microphone.status === "on"
-                    ? "Mikrofon açıkken ses dosyası merkezde ve iki kulağa eşit çalınır."
-                    : outputMode === "binaural"
-                      ? "Konuşma ve ortam kulaklık için hafifçe uzamsallaştırılır."
-                      : "Yankı hafiftir; konuşmanın anlaşılır kalması önceliklidir."}
-          </p>
-
+          <Slider label="SES SEVİYESİ" value={settings.volume} min={0.05} max={1} step={0.01}
+            display={`${Math.round(settings.volume * 100)}%`} onChange={(v) => patch({ volume: v })} />
           <div className="mt-3 flex items-center gap-3 border border-line px-3 py-2">
             <Meter value={level} active={running || testing} wide />
             <button
-              onClick={async () => {
-                setTesting(true);
-                await engine.testTone();
-                setTesting(false);
-              }}
+              onClick={async () => { setTesting(true); await engine.testTone(); setTesting(false); }}
               disabled={testing}
               className="label ml-auto flex min-h-[36px] items-center gap-1.5 border border-line px-3 text-dim hover:border-amber hover:text-amber disabled:opacity-50"
             >
@@ -910,12 +730,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
               {testing ? "ÇALIYOR…" : "SES TESTİ"}
             </button>
           </div>
-          {silent && (
-            <p className="mt-2 border-l-2 border-amber pl-3 text-[11px] leading-relaxed text-amber/90">
-              Çıkış sessiz görünüyor. Sistem sesini aç, çıkışı HOPARLÖR seç ve SES TESTİ’ne bas.
-            </p>
-          )}
-        </Section>
+        </div>
 
         <Disclosure title={slot?.review ? "ÖNCEKİ BLOK · TEKRAR" : "BU GECEKİ İÇERİK"} icon={<Repeat className="h-4 w-4" strokeWidth={1.5} />}>
           <ol>
@@ -959,112 +774,8 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
           )}
         </Disclosure>
 
-        <div className="border-b border-line">
-          <button onClick={() => setAdvanced((v) => !v)} className="flex min-h-[52px] w-full items-center justify-between px-4 md:px-5">
-            <span className="label text-bone">İNCE AYAR</span>
-            <span className="flex items-center gap-2">
-              <span className="label-sm">{settings.prepMinutes}′ · {settings.voiceSource === "cloud" ? "STÜDYO" : "CİHAZ"}</span>
-              <ChevronDown className={`h-4 w-4 text-dim transition-transform ${advanced ? "rotate-180" : ""}`} strokeWidth={1.6} />
-            </span>
-          </button>
-
-          {advanced && (
-            <div className="space-y-5 px-4 pb-5 md:px-5">
-              <div>
-                <span className="label">UYKUYA GEÇİŞ SÜRESİ</span>
-                <div className="mt-2 grid grid-cols-3 gap-px">
-                  {[35, 40, 45].map((v) => (
-                    <button key={v} onClick={() => patch({ prepMinutes: v })}
-                      disabled={running || elapsed > 0} aria-pressed={settings.prepMinutes === v}
-                      className={`label min-h-[44px] border transition-colors disabled:cursor-not-allowed ${settings.prepMinutes === v ? "border-amber text-amber" : "border-line text-dim hover:text-bone disabled:opacity-50"}`}>
-                      {v} DK
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <span className="label">ZAMANLAYICI</span>
-                <div className="mt-2 flex flex-wrap gap-px">
-                  {[0, 30, 90, 120, 240].map((v) => (
-                    <button key={v} onClick={() => patch({ timerMinutes: v })}
-                      className={`label min-h-[40px] border px-3 transition-colors ${settings.timerMinutes === v ? "border-amber text-amber" : "border-line text-dim hover:text-bone"}`}>
-                      {v === 0 ? "SABAHA KADAR" : `${v} DK`}
-                    </button>
-                  ))}
-                </div>
-                <p className="label-sm mt-2">BİTİŞTE {settings.fadeMinutes} DK YUMUŞAK KISILMA</p>
-              </div>
-
-              <div>
-                <span className="label">HOPARLÖR DALGA BİÇİMİ</span>
-                <div className="mt-2 grid grid-cols-2 gap-px">
-                  {([
-                    { id: "isochronic", label: "NABIZ", hint: "isokronik · belirgin" },
-                    { id: "monaural", label: "YUMUŞAK", hint: "monaural · sakin" },
-                  ] as const).map((s) => (
-                    <button key={s.id} onClick={() => patch({ speakerStyle: s.id })}
-                      className={`flex min-h-[52px] flex-col items-center justify-center border transition-colors ${settings.speakerStyle === s.id ? "border-amber text-amber" : "border-line text-dim hover:text-bone"}`}>
-                      <span className="label" style={{ color: "inherit" }}>{s.label}</span>
-                      <span className="label-sm mt-1">{s.hint}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <span className="label">OKUNUŞ KAYNAĞI</span>
-                <div className="mt-2 grid grid-cols-2 gap-px">
-                  {([
-                    { id: "cloud", label: "STÜDYO", hint: "yankılı" },
-                    { id: "device", label: "CİHAZ", hint: "yedek" },
-                  ] as const).map((v) => (
-                    <button key={v.id} onClick={() => patch({ voiceSource: v.id })}
-                      className={`flex min-h-[52px] flex-col items-center justify-center border transition-colors ${settings.voiceSource === v.id ? "border-amber text-amber" : "border-line text-dim hover:text-bone"}`}>
-                      <span className="label" style={{ color: "inherit" }}>{v.label}</span>
-                      <span className="label-sm mt-1">{v.hint}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <Slider label="OKUMA HIZI" value={settings.voiceRate} min={0.85} max={1.1} step={0.01}
-                display={`${settings.voiceRate.toFixed(2)}×`} onChange={(v) => patch({ voiceRate: v })} />
-              <Slider label="OKUMA SEVİYESİ" value={settings.voiceLevel} min={0.2} max={1.4} step={0.01}
-                display={`${Math.round(settings.voiceLevel * 100)}%`} onChange={(v) => patch({ voiceLevel: v })} />
-
-              <button
-                onClick={() => void previewVoice()}
-                disabled={voiceStatus === "loading" || !pool.length || (running && phase === "prep")}
-                className="label min-h-[42px] w-full border border-line text-dim hover:border-amber hover:text-amber disabled:opacity-35"
-              >
-                ÖRNEK CÜMLEYİ DİNLE
-              </button>
-
-              <label className="flex min-h-[44px] cursor-pointer items-center justify-between border-b border-line/60">
-                <span className="label">OKUNUŞ AÇIK</span>
-                <input type="checkbox" checked={settings.speak} onChange={(e) => patch({ speak: e.target.checked })} className="h-5 w-5 accent-[#ffb35c]" />
-              </label>
-               <label className="flex min-h-[44px] cursor-pointer items-center justify-between border-b border-line/60">
-                 <span className="label">HAREKETE GÖRE SESİ KIS</span>
-                <input type="checkbox" checked={settings.sleepDetect} onChange={(e) => patch({ sleepDetect: e.target.checked })} className="h-5 w-5 accent-[#ffb35c]" />
-              </label>
-              <label className="flex min-h-[44px] cursor-pointer items-center justify-between border-b border-line/60">
-                <span className="label">PİL İYİLEŞTİRME</span>
-                <input type="checkbox" checked={settings.batterySaver} onChange={(e) => patch({ batterySaver: e.target.checked })} className="h-5 w-5 accent-[#ffb35c]" />
-              </label>
-
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="label">KONUM</span>
-                  <span className="num text-[11px] text-dim">{Math.round(elapsed / 60)} DK</span>
-                </div>
-                <input type="range" min={0} max={180} step={1} value={Math.min(180, Math.round(elapsed / 60))}
-                  onChange={(e) => scrub(Number(e.target.value))} aria-label="Seans zamanını kaydır" />
-                <p className="label-sm">GEÇİŞİ HEMEN DİNLEMEK İÇİN {settings.prepMinutes}′ SONRASINA KAYDIR</p>
-              </div>
-            </div>
-          )}
+        <div className="border-b border-line px-4 py-4 md:px-5">
+          <p className="label-sm text-dim2">Yat ve dinlen. Seans başladığında dil tekrarları otomatik başlar.</p>
         </div>
 
         <div className="flex items-start gap-2 px-4 py-4 text-dim2 md:px-5">
