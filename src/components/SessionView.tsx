@@ -92,7 +92,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
     ? elapsedRef.current
     : Math.max(0, (Date.now() - startedAtRef.current) / 1000);
 
-  const prepSec = settings.prepMinutes * 60;
+  const prepSec = settings.sessionMode === "morning" ? 15 * 60 : settings.prepMinutes * 60;
   const baseBlock = sessionBase ?? progress[lang]?.blockIndex ?? 0;
   const [blockOffset, setBlockOffset] = useState(0);
   const currentBlock = (baseBlock + blockOffset) % Math.max(1, totalBlocks);
@@ -534,7 +534,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
             <Chip accent>
               <span className="num text-[12px]">{protocol.hz.toFixed(1)}</span> Hz · {protocol.band}
             </Chip>
-            <Chip>{phase === "prep" ? "1 · DİNLENME" : "2 · DİL TEKRARI"}</Chip>
+            <Chip>{settings.sessionMode === "morning" && phase === "prep" ? "1 · ALFA YÜKSELİŞİ" : phase === "prep" ? "1 · DİNLENME" : "2 · DİL TEKRARI"}</Chip>
             <span className="hidden md:contents"><Chip>BLOK {currentBlock + 1}/{totalBlocks}</Chip></span>
             {microphone.status === "on" ? (
               <Chip accent>EŞİT SES</Chip>
@@ -556,6 +556,8 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
                 <p className="mt-2 max-w-lg text-[13px] leading-relaxed text-dim">
                   {elapsed > 0
                     ? "Ses duraklatıldı. Hazır olduğunda kaldığın yerden devam edebilirsin."
+                    : settings.sessionMode === "morning"
+                    ? "İlk 15 dk alfa dalgası, ardından net ve hafif yankılı dil tekrarları."
                     : `${settings.prepMinutes} dakika konuşmasız dinlenme, ardından net ve hafif yankılı dil tekrarları.`}
                 </p>
               </>
@@ -702,7 +704,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
               <div>
                 <span className="label text-bone">DİL SESLERİ</span>
                  <p className="mt-1 text-[12px] leading-relaxed text-dim">
-                   ${settings.prepMinutes}. dakikadan sonra net, hafif yankılı ve aralıklı okunuşlar başlar.
+                   ${settings.sessionMode === "morning" ? "İlk 15 dk alfa dalgası, ardından net, hafif yankılı ve aralıklı okunuşlar başlar." : `${settings.prepMinutes}. dakikadan sonra net, hafif yankılı ve aralıklı okunuşlar başlar.`}
                  </p>
               </div>
             </div>
