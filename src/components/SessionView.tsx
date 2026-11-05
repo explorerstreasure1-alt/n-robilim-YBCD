@@ -212,13 +212,12 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
   }, [running, phase, elapsed, lang]);
 
   useEffect(() => {
-    if (!visible) return;
     let raf = 0;
     let quiet = 0;
     let frame = 0;
     const tick = () => {
       frame += 1;
-      if (frame % 3 === 0 && !document.hidden) {
+      if (frame % 3 === 0) {
         const v = engine.getLevel();
         setLevel(v);
         if (engine.isRunning && v < 0.008) quiet += 1;
@@ -229,7 +228,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [visible]);
+  }, []);
 
   useEffect(() => {
     engine.setVolume(settings.volume);
