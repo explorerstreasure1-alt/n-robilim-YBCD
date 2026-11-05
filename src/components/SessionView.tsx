@@ -668,7 +668,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
               <span className="num text-[11px] text-amber">01</span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="label text-bone">{settings.sessionMode === "morning" ? "SABAH · ALFA" : "GECE · DINLENME"}</span>
+                  <span className="label text-bone">{settings.sessionMode === "morning" ? "SABAH · ALFA" : "AKŞAM · DINLENME"}</span>
                   <span className="label-sm text-amber">{settings.sessionMode === "morning" ? "ALFA YÜKSELİŞİ" : "ÖNCE DINLENME, SONRA DİL"}</span>
                 </div>
                  <p className="mt-1 text-[12px] leading-relaxed text-dim">
@@ -686,16 +686,17 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
                        <span className="label-sm mt-1">{mode.hint}</span>
                      </button>
                    ))}
-                 </div>
-                 <div className="mt-3 grid grid-cols-3 gap-1" aria-label="Dinlenme süresi">
-                   {[35, 40, 45].map((minutes) => (
-                     <button key={minutes} onClick={() => patch({ prepMinutes: minutes })}
-                       disabled={running || elapsed > 0} aria-pressed={settings.prepMinutes === minutes}
-                       className={`label min-h-[42px] border transition-colors disabled:cursor-not-allowed ${settings.prepMinutes === minutes ? "border-amber text-amber" : "border-line text-dim hover:text-bone disabled:opacity-50"}`}>
-                       {minutes} DK
-                     </button>
-                   ))}
-                 </div>
+                 {settings.sessionMode === "sleep" && (
+                   <div className="mt-3 grid grid-cols-3 gap-1" aria-label="Dinlenme süresi">
+                     {[35, 40, 45].map((minutes) => (
+                       <button key={minutes} onClick={() => patch({ prepMinutes: minutes })}
+                         disabled={running || elapsed > 0} aria-pressed={settings.prepMinutes === minutes}
+                         className={`label min-h-[42px] border transition-colors disabled:cursor-not-allowed ${settings.prepMinutes === minutes ? "border-amber text-amber" : "border-line text-dim hover:text-bone disabled:opacity-50"}`}>
+                         {minutes} DK
+                       </button>
+                     ))}
+                   </div>
+                 )}
               </div>
             </div>
             <div className="my-3 border-t border-line" />
