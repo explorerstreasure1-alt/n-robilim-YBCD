@@ -168,6 +168,26 @@ input[type="range"]::-moz-range-thumb {
   input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; }
   /* iOS, 16px altındaki alanlara odaklanınca sayfayı büyütür. */
   input:not([type="range"]):not([type="checkbox"]), select, textarea { font-size: 16px !important; }
+
+  /* ---------- Mobil parmak tutamakları (minimum 44px) ---------- */
+  button, [role="button"], a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Dil seçici butonları: parmak dostu, aşırı dar olmasın */
+  .scroll-thin.overflow-x-auto button,
+  .flex-wrap.items-center.gap-2 button {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 10px;
+  }
+
+  /* Safe area: notched telefonlarda kenarlara sıçrama olmasın */
+  body {
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+    padding-top: max(10px, env(safe-area-inset-top));
+  }
 }
 
 :focus-visible { outline: 2px solid #ffb35c; outline-offset: 3px; }

@@ -649,7 +649,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
       </section>
 
       <aside className="scroll-thin w-full shrink-0 md:w-[382px] md:overflow-y-auto">
-        <div className="scroll-thin flex gap-px overflow-x-auto border-b border-line">
+        <div className="scroll-thin flex gap-2 overflow-x-auto border-b border-line pb-1">
           {LANGUAGES.map((l) => (
             <button
               key={l.code}
@@ -657,7 +657,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
               disabled={running || elapsed > 0}
               aria-label={l.name}
               aria-pressed={lang === l.code}
-              className={`label min-h-[46px] shrink-0 px-3.5 transition-colors disabled:cursor-not-allowed ${lang === l.code ? "bg-amber text-black" : "text-dim hover:text-bone disabled:opacity-50"}`}
+              className={`label min-h-[48px] shrink-0 px-4 min-w-[48px] transition-colors disabled:cursor-not-allowed ${lang === l.code ? "bg-amber text-black" : "text-dim hover:text-bone disabled:opacity-50"}`}
             >
               {l.code.toUpperCase()}
             </button>

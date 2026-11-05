@@ -170,7 +170,7 @@ export default function VocabView() {
                 onClick={() => setLang(l.code)}
                 aria-label={l.name}
                 aria-pressed={lang === l.code}
-                className={`label min-h-[44px] shrink-0 rounded-lg border px-3 transition-colors md:min-h-[38px] md:rounded-none ${
+                className={`label min-h-[48px] shrink-0 rounded-lg border px-4 min-w-[48px] transition-colors md:min-h-[38px] md:rounded-none ${
                   lang === l.code ? "border-amber bg-[#1b140c] text-amber" : "border-line text-dim hover:text-bone"
                 }`}
               >

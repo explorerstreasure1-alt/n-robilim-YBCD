@@ -194,7 +194,7 @@ export default function Shell() {
           {/* ---------- mobil sekme çubuğu ---------- */}
           <nav
             className="flex shrink-0 items-stretch border-t border-line bg-[#080705] md:hidden"
-            style={{ paddingBottom: "max(4px, env(safe-area-inset-bottom))" }}
+            style={{ paddingBottom: "max(14px, env(safe-area-inset-bottom))" }}
           >
             {TABS.map((t) => {
               const Icon = t.icon;
@@ -204,12 +204,12 @@ export default function Shell() {
                   key={t.id}
                   onClick={() => setTab(t.id)}
                   aria-current={active ? "page" : undefined}
-                  className={`relative flex min-h-[62px] flex-1 flex-col items-center justify-center gap-1 ${
+                  className={`relative flex min-h-[76px] flex-1 flex-col items-center justify-center gap-3 ${
                     active ? "text-amber" : "text-dim2"
                   }`}
                 >
-                  <span className={`flex h-8 w-12 items-center justify-center rounded-full ${active ? "bg-[#21170d]" : ""}`}>
-                    <Icon className="h-[19px] w-[19px]" strokeWidth={1.5} />
+                  <span className={`flex h-12 w-14 items-center justify-center rounded-full ${active ? "bg-[#140f08]" : ""}`}>
+                    <Icon className="h-[24px] w-[24px]" strokeWidth={1.5} />
                   </span>
                   <span className="label-sm" style={{ color: "inherit" }}>{t.label}</span>
                 </button>

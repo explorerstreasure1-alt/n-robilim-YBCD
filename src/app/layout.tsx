@@ -33,8 +33,8 @@ export const metadata: Metadata = {
   // Eski iOS Safari sürümleri için standart meta etiketine ek olarak.
   other: { "apple-mobile-web-app-capable": "yes" },
   icons: {
-    icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    icon: [{ url: "/icons/icon-192.svg", sizes: "192x192", type: "image/svg+xml" }],
+    apple: [{ url: "/icons/apple-touch-icon.svg", sizes: "180x180", type: "image/svg+xml" }],
   },
 };
 
