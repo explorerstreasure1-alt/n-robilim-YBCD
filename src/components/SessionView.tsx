@@ -231,8 +231,10 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
   }, []);
 
   useEffect(() => {
-    engine.setVolume(settings.volume);
-  }, [settings.volume]);
+    // Dinlenme fazında tam ses, dil tekrarı (sub) fazında arka plan frekansı hafif kısılır
+    const vol = phase === "sub" ? settings.volume * 0.55 : settings.volume;
+    engine.setVolume(vol);
+  }, [settings.volume, phase]);
 
   useEffect(() => {
     if (settings.output !== "auto") return;
@@ -699,13 +701,14 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
                  )}
               </div>
             </div>
+            </div>
             <div className="my-3 border-t border-line" />
             <div className="flex items-start gap-3">
               <span className="num text-[11px] text-amber">02</span>
               <div>
                 <span className="label text-bone">DİL SESLERİ</span>
                  <p className="mt-1 text-[12px] leading-relaxed text-dim">
-                   ${settings.sessionMode === "morning" ? "İlk 15 dk alfa dalgası, ardından net, hafif yankılı ve aralıklı okunuşlar başlar." : `${settings.prepMinutes}. dakikadan sonra net, hafif yankılı ve aralıklı okunuşlar başlar.`}
+{settings.sessionMode === "morning" ? "İlk 15 dk alfa dalgası, ardından net, hafif yankılı ve aralıklı okunuşlar başlar." : `${settings.prepMinutes}. dakikadan sonra net, hafif yankılı ve aralıklı okunuşlar başlar.`}
                  </p>
               </div>
             </div>
