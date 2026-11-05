@@ -556,7 +556,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
   return (
     <div className="scroll-thin h-full overflow-y-auto md:flex md:overflow-hidden">
       <section className="relative h-[34svh] min-h-[220px] max-h-[300px] w-full shrink-0 overflow-hidden border-b border-line md:h-auto md:min-h-0 md:max-h-none md:flex-1 md:border-b-0 md:border-r">
-        <Image src="/images/night-window.jpg" alt="" fill unoptimized sizes="100vw" className="object-cover opacity-30" style={{ objectPosition: "50% 45%" }} />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0908] via-black to-black opacity-80" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/75 to-black/40" />
         <Scope phase={phase} reverb={settings.reverb} running={running} sleeping={settings.sleepDetect && sleeping} lowPower={settings.batterySaver} visible={visible && !screenDark} />
         <div className="relative flex h-full flex-col justify-between p-4 md:p-8">

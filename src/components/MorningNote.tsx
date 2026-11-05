@@ -87,7 +87,7 @@ export default function MorningNote({
         className="grain scroll-thin relative max-h-[94dvh] w-full max-w-2xl overflow-y-auto rounded-t-3xl border border-line bg-panel sm:rounded-2xl"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <Image src="/images/dawn-window.jpg" alt="" width={1200} height={400} unoptimized className="absolute inset-x-0 top-0 h-36 w-full object-cover opacity-35" />
+        <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-[#0a0908] via-transparent to-transparent opacity-60" />
         <div className="absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-transparent via-panel/70 to-panel" />
 
         <button

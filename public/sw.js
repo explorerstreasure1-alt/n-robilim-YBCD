@@ -3,9 +3,9 @@ const STATIC = "nocta-static-v2";
 const DATA = "nocta-data-v2";
 const LEGACY = "nocta-v1"; // önceki sürümde indirilmiş sesleri koru
 const SHELL = [
-  "/", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png",
-  "/icons/maskable-512.png", "/icons/apple-touch-icon.png",
-  "/images/night-window.jpg", "/images/dawn-window.jpg", "/images/panel-texture.jpg",
+  "/", "/manifest.webmanifest",
+  "/icons/icon-192.svg", "/icons/icon-512.svg",
+  "/icons/maskable-512.svg", "/icons/apple-touch-icon.svg",
   "/licenses/tatoeba-examples.txt",
 ];
 
@@ -46,8 +46,6 @@ async function cachedData(request) {
   return (await caches.open(LEGACY)).match(request);
 }
 
-// Çevrimdışıyken tam cümle birebir bulunamazsa aynı dil için daha önce indirilen
-// herhangi bir ses örneğine düşmek, en azından test ve kullanım sırasında sessizlikten iyidir.
 async function cachedTtsFallback(request) {
   const direct = await cachedData(request);
   if (direct) return direct;
@@ -105,7 +103,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname.startsWith("/images/") || url.pathname.startsWith("/licenses/")) {
+  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname.startsWith("/licenses/")) {
     event.respondWith((async () => {
       const cache = await caches.open(STATIC);
       const cached = await cache.match(request);
