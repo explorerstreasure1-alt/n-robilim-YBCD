@@ -93,13 +93,13 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
     ? elapsedRef.current
     : Math.max(0, (Date.now() - startedAtRef.current) / 1000);
 
-  const prepSec = settings.testMode ? 0 : settings.sessionMode === "morning" ? 15 * 60 : settings.prepMinutes * 60;
+  const prepSec = 0;
   const baseBlock = sessionBase ?? progress[lang]?.blockIndex ?? 0;
   const [blockOffset, setBlockOffset] = useState(0);
   const currentBlock = (baseBlock + blockOffset) % Math.max(1, totalBlocks);
   const subElapsed = Math.max(0, elapsed - prepSec);
   const inBlock = subElapsed % BLOCK_SEC;
-  const phase: "prep" | "sub" = settings.testMode ? "sub" : elapsed >= prepSec ? "sub" : "prep";
+  const phase: "prep" | "sub" = "sub";
   const protocol = useMemo(() => {
     if (settings.sessionMode === "morning") return protocolMorning(elapsed, prepSec);
     return protocolSleep(elapsed, prepSec);
@@ -268,7 +268,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
   }, []);
 
   useEffect(() => {
-    if (!running || phase !== "prep") return;
+    if (!running || false) return;
     engine.schedulePhaseTransition(Math.max(0, prepSec - currentElapsed()));
   }, [running, phase, prepSec, outputMode, microphone.status, meta.carrier, scheduleRevision]);
 
@@ -355,7 +355,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: `NOCTA · ${meta.name}`,
-        artist: phase === "prep" ? `${protocol.band} ${protocol.hz} Hz` : activeLine?.text ?? "pekiştirme",
+        artist: activeLine?.text ?? "pekiştirme",
         album: `Blok ${currentBlock + 1}/${totalBlocks}`,
       });
       navigator.mediaSession.playbackState = running ? "playing" : "paused";
@@ -535,7 +535,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
 
   const previewVoice = async () => {
     const text = pool[0]?.text;
-    if (!text || (running && phase === "prep")) return;
+    if (!text || false) return;
     setVoiceStatus("loading");
     const result = await playLine({
       lang, text, source: settings.voiceSource, rate: settings.voiceRate, level: settings.voiceLevel,
@@ -554,7 +554,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
             <Chip accent>
               <span className="num text-[12px]">{protocol.hz.toFixed(1)}</span> Hz · {protocol.band}
             </Chip>
-            <Chip>{settings.sessionMode === "morning" && phase === "prep" ? "1 · ALFA YÜKSELİŞİ" : phase === "prep" ? "1 · DİNLENME" : "2 · DİL TEKRARI"}</Chip>
+            <Chip>{"2 · DİL TEKRARI"}</Chip>
             <span className="hidden md:contents"><Chip>BLOK {currentBlock + 1}/{totalBlocks}</Chip></span>
             {microphone.status === "on" ? (
               <Chip accent>EŞİT SES</Chip>
@@ -581,7 +581,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
                     : `${settings.prepMinutes} dakika konuşmasız dinlenme, ardından net ve hafif yankılı dil tekrarları.`}
                 </p>
               </>
-            ) : phase === "prep" ? (
+            ) : false ? (
               <>
                 <p className="rise font-display text-[clamp(1.4rem,4vw,2.5rem)] italic leading-[1.1] text-bone/85">
                   {protocol.label}
@@ -765,7 +765,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
                   <span className={`num pt-[3px] text-[10px] ${active ? "text-amber" : "text-dim2"}`}>{String(i + 1).padStart(2, "0")}</span>
                   <span className="min-w-0 flex-1">
                     <span className={`block text-[13px] leading-snug ${active ? "text-bone" : "text-dim"}`}>
-                      {running && phase === "prep" ? "· · ·" : l?.text ?? "—"}
+                      {running && false ? "· · ·" : l?.text ?? "—"}
                     </span>
                     {active && <span className="mt-0.5 block text-[11px] text-dim2">{l?.translation}</span>}
                   </span>
@@ -773,7 +773,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
                     <Star className="mt-1 h-3 w-3 shrink-0 text-amber" strokeWidth={1.6} fill="#ffb35c" />
                   ) : (
                     <span className={`label-sm pt-1 ${active ? "text-amber" : ""}`}>
-                      {running && phase === "prep" ? "" : l?.rhyme ?? ""}
+                      {running && false ? "" : l?.rhyme ?? ""}
                     </span>
                   )}
                 </li>
