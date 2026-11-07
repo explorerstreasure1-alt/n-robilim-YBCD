@@ -78,6 +78,7 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
   const [voiceStatus, setVoiceStatus] = useState<VoiceResult | "loading" | null>(null);
   const [audioError, setAudioError] = useState("");
   const [screenDark, setScreenDark] = useState(false);
+  const [spokenHistory, setSpokenHistory] = useState<{ text: string; translation: string; time: string }[]>([]);
   const [scheduleRevision, setScheduleRevision] = useState(0);
   const microphone = useMicrophone();
 
@@ -92,13 +93,13 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
     ? elapsedRef.current
     : Math.max(0, (Date.now() - startedAtRef.current) / 1000);
 
-  const prepSec = settings.sessionMode === "morning" ? 15 * 60 : settings.prepMinutes * 60;
+  const prepSec = settings.testMode ? 0 : settings.sessionMode === "morning" ? 15 * 60 : settings.prepMinutes * 60;
   const baseBlock = sessionBase ?? progress[lang]?.blockIndex ?? 0;
   const [blockOffset, setBlockOffset] = useState(0);
   const currentBlock = (baseBlock + blockOffset) % Math.max(1, totalBlocks);
   const subElapsed = Math.max(0, elapsed - prepSec);
   const inBlock = subElapsed % BLOCK_SEC;
-  const phase: "prep" | "sub" = elapsed >= prepSec ? "sub" : "prep";
+  const phase: "prep" | "sub" = settings.testMode ? "sub" : elapsed >= prepSec ? "sub" : "prep";
   const protocol = useMemo(() => {
     if (settings.sessionMode === "morning") return protocolMorning(elapsed, prepSec);
     return protocolSleep(elapsed, prepSec);
@@ -319,6 +320,23 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
       level: Math.min(1, settings.voiceLevel * 0.95),
     }).then((result) => {
       if (result !== "cancelled") setVoiceStatus(result);
+      if (activeLine) {
+        setSpokenHistory((prev) => {
+          const exists = prev.some((h) => h.text === activeLine.text);
+          if (!exists) {
+            return [...prev, {
+              text: activeLine.text,
+              translation: activeLine.translation ?? "",
+              time: new Date().toLocaleTimeString("tr-TR", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              }),
+            }].slice(-100);
+          }
+          return prev;
+        });
+      }
       if (result === "cloud" && activeLine.translation) {
         void playLine({
           lang: "tr",
@@ -798,6 +816,47 @@ export default function SessionView({ onStatus, onSessionEnd, stopRequest, visib
           <Moon className="h-8 w-8 text-[#3d3021]" strokeWidth={1.1} />
           <span className="label-sm text-[#6d5a43]">EKRANI AÇMAK İÇİN DOKUN</span>
         </button>
+      )}
+      {settings.testMode && (
+        <section className="border border-amber bg-[#1a1408] p-4 mt-4">
+          <div className="flex items-center gap-2 text-amber mb-2">
+            <Zap className="h-4 w-4" strokeWidth={1.5} />
+            <h3 className="label text-amber">TEST MODU — HEMEN OKUMA</h3>
+          </div>
+          <div className="flex gap-4 mb-3">
+            <div>
+              <span className="label-sm block text-dim">SÜRE</span>
+              <span className="num text-[14px] font-mono">{mmss(elapsed)}</span>
+            </div>
+            <div>
+              <span className="label-sm block text-dim">OKUNAN</span>
+              <span className="num text-[14px] font-mono">{spokenHistory.length}</span>
+            </div>
+          </div>
+          <div className="max-h-64 overflow-y-auto border border-line/40 rounded p-2">
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr>
+                  <th className="text-left pb-1 text-dim">ZAMAN</th>
+                  <th className="text-left pb-1 text-dim">KELİME / CÜMLE</th>
+                  <th className="text-left pb-1 text-dim">ANLAMI</th>
+                </tr>
+              </thead>
+              <tbody>
+                {spokenHistory.slice().reverse().map((h, i) => (
+                  <tr key={i} className="border-b border-line/20 last:border-b-0">
+                    <td className="py-1 text-dim font-mono">{h.time}</td>
+                    <td className="py-1 text-bone">{h.text}</td>
+                    <td className="py-1 text-dim">{h.translation}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {spokenHistory.length === 0 && (
+            <p className="mt-2 text-[11px] text-dim">Henüz okuma yapılmadı. Seansı başlatın.</p>
+          )}
+        </section>
       )}
     </div>
   );

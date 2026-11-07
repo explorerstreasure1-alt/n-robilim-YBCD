@@ -37,6 +37,8 @@ export interface Settings {
   batterySaver: boolean;
   /** Seans bitiş zamanlayıcı (dk). 0 = sabaha kadar. */
   timerMinutes: number;
+  /** Test modu: bekleme süresi sıfır, hemen okumalar başlar */
+  testMode: boolean;
   reminderAt: string;
 }
 
@@ -56,6 +58,7 @@ const DEFAULTS: Settings = {
   spatialDepth: 0.5,
   batterySaver: true,
   timerMinutes: 0,
+  testMode: false,
   reminderAt: "23:15",
 };
 

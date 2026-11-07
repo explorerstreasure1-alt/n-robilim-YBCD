@@ -199,6 +199,21 @@ export default function SettingsView({ active = true }: { active?: boolean }) {
       </section>
 
       <MicrophoneControl />
+
+      {/* TEST MODU */}
+      <section className="rounded-2xl border border-line bg-[#0c0a08] p-4 mt-4">
+        <div className="flex items-center gap-2 text-amber/80 mb-3">
+          <Zap className="h-4 w-4" strokeWidth={1.5} />
+          <h2 className="label text-bone">TEST MODU</h2>
+        </div>
+        <label className="flex min-h-[48px] cursor-pointer items-center justify-between border-b border-line/60">
+          <span className="label block">TEST MODU AÇIK</span>
+          <input type="checkbox" checked={settings.testMode} onChange={(e) => patch({ testMode: e.target.checked })} className="h-5 w-5 accent-[#ffb35c]" />
+        </label>
+        <p className="mt-2 text-[11px] leading-relaxed text-dim2">
+          Açıkken bekleme süresi sıfırlanır ve okumalar hemen başlar. Seans ekranında okunan kelime listesi görünür.
+        </p>
+      </section>
     </div>
   );
 }
