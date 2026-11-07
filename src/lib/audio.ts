@@ -424,6 +424,16 @@ class NoctaEngine {
         }
       };
       document.addEventListener("visibilitychange", resume);
+      document.addEventListener("freeze", () => {
+        // Sayfa arka plana alındı (ekran kilidi vb.); context'i bırakma.
+      });
+      document.addEventListener("resume", resume);
+      window.addEventListener("pageshow", resume);
+      window.addEventListener("pagehide", (e) => {
+        if (e.persisted) {
+          // back-forward cache'e girecek; context'i suspended bırakma, sadece durdurma.
+        }
+      });
       window.addEventListener("focus", resume);
       ctx.onstatechange = () => this.emit();
     }
